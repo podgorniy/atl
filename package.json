@@ -1,0 +1,36 @@
+{
+  "name": "ami-template-editor",
+  "version": "0.1.0",
+  "description": "Template string editor for AMI projects",
+  "type": "module",
+  "scripts": {
+    "build": "npm run generate-parser && tsc",
+    "watch-build": "nodemon --config nodemon-build.json",
+    "generate-parser": "lezer-generator -o ./src/parser.js ./src/syntax.grammar",
+    "test": "npm run build && mocha test/run.js",
+    "watch-test": "nodemon --config nodemon-test.json",
+    "demo": "parcel serve --watch-dir dist --watch-dir ./src --no-cache src/demo.html"
+  },
+  "author": "Dmitro",
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.15.0",
+    "@codemirror/commands": "^6.3.3",
+    "@codemirror/language": "^6.10.1",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.26.0",
+    "@lezer/highlight": "^1.2.0",
+    "@lezer/lr": "^1.4.0",
+    "codemirror": "^6.0.1"
+  },
+  "devDependencies": {
+    "@lezer/generator": "^1.7.0",
+    "@parcel/transformer-typescript-tsc": "^2.12.0",
+    "@types/codemirror": "^5.60.15",
+    "mocha": "^10.3.0",
+    "nodemon": "^3.1.0",
+    "parcel": "^2.12.0",
+    "prettier": "^3.2.5",
+    "process": "^0.11.10",
+    "typescript": "^5.4.2"
+  }
+}

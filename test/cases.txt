@@ -1,0 +1,31 @@
+# Plain text
+
+kek mama mila ramu
+
+==>
+
+TemplateString(Expression(Text))
+
+# Text with one variable
+
+pepe {kek}
+
+==>
+
+TemplateString(Expression(Text), Expression(VariableUse(VariableName)))
+
+# More vars
+
+pepe {kek} {kok} pepe
+
+==>
+
+TemplateString(Expression(Text), Expression(VariableUse(VariableName)), Expression(Text), Expression(VariableUse(VariableName)), Expression(Text))
+
+# More spaces
+
+pepe {   kek    }
+
+==>
+
+TemplateString(Expression(Text), Expression(VariableUse(Space, VariableName, Space)))

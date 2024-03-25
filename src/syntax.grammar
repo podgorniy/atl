@@ -1,0 +1,11 @@
+@top TemplateString { Expression+ }
+
+Expression { VariableUse | Text  }
+
+VariableUse { "{" Space* VariableName Space* "}" }
+
+@tokens {
+    VariableName { @asciiLetter+ }
+    Text { ![\{\}]+ }
+    Space { @whitespace+ }
+}

@@ -1,0 +1,7 @@
+{
+  "verbose": true,
+  "watch": ["src", "test"],
+  "ext": "*",
+  "ignore": [".parcel-cache", "dist", "src/parser.js", "src/parser.terms.js"],
+  "exec": "npm run test"
+}
