@@ -13,18 +13,24 @@ import { history } from "@codemirror/commands";
 import { HighlightStyle, LanguageSupport, syntaxHighlighting, } from "@codemirror/language";
 import { AmiTemplateLanguage } from "./langauge.js";
 import { tags } from "@lezer/highlight";
+/**
+ * Editor there, not same as code highlighting
+ */
 let AmiTheme = EditorView.baseTheme({
     ".cm-content": {
         fontFamily: "Roboto,Helvetica Neue,sans-serif",
     },
     ".ami-var-use": {
-        border: "1px solid #b6effb",
-        color: "#055160",
-        backgroundColor: "#cff4fc",
+        border: "1px solid #badbcc",
+        color: "#0f5132",
+        backgroundColor: "#d1e7dd",
         borderRadius: "3px",
         margin: "-1px",
     },
 });
+/**
+ * Code highlighting, not same as editor theme
+ */
 let AmiHighlighting = HighlightStyle.define([
     {
         tag: tags.variableName,
@@ -99,6 +105,9 @@ export class AmiTemplateStringEditor {
                 return null;
             }
         });
+    }
+    lint() {
+        return linter();
     }
     constructor(params) {
         /**

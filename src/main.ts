@@ -10,9 +10,11 @@ import {
   HighlightStyle,
   LanguageSupport,
   syntaxHighlighting,
+  syntaxTree,
 } from "@codemirror/language";
 import { AmiTemplateLanguage } from "./langauge.js";
 import { tags } from "@lezer/highlight";
+import { linter } from "@codemirror/lint";
 
 export interface IAmiTemplateStringEditorParams {
   /**
@@ -22,19 +24,42 @@ export interface IAmiTemplateStringEditorParams {
   initialText: string;
 }
 
+/**
+ * Editor there, not same as code highlighting
+ */
 let AmiTheme = EditorView.baseTheme({
   ".cm-content": {
     fontFamily: "Roboto,Helvetica Neue,sans-serif",
   },
+  ".cm-tooltip": {
+    fontFamily: "Roboto,Helvetica Neue,sans-serif",
+  },
   ".ami-var-use": {
-    border: "1px solid #b6effb",
-    color: "#055160",
-    backgroundColor: "#cff4fc",
+    border: "1px solid #badbcc",
+    color: "#0f5132",
+    backgroundColor: "#d1e7dd",
     borderRadius: "3px",
     margin: "-1px",
   },
+  ".cm-lintRange-error .ami-var-use": {
+    backgroundColor: "#f8d7da",
+    color: "#842029",
+    borderColor: "#f5c2c7",
+  },
+  ".cm-lintRange-error": {
+    border: "1px solid #badbcc",
+    backgroundColor: "#f8d7da",
+    color: "#842029",
+    borderColor: "#f5c2c7",
+    borderRadius: "3px",
+    margin: "-1px",
+    backgroundImage: "none!important",
+  },
 });
 
+/**
+ * Code highlighting, not same as editor theme
+ */
 let AmiHighlighting = HighlightStyle.define([
   {
     tag: tags.variableName,
@@ -61,8 +86,77 @@ export interface IAmiTemplateStringVariableDescriptor {
 }
 
 export class AmiTemplateStringEditor {
+  /**
+   * Flag shows if input has errors. Error is unclosed bracket or usage of the variable which is not in the list of allowed ones
+   */
+  public hasErrors: boolean = false;
+
+  private _cachedText: string = "";
+
+  private _linter = linter(
+    (view) => {
+      const state = view.state;
+      const tree = syntaxTree(state);
+      // Don't validate empty doc
+      if (this.text.length === 0) {
+        return [];
+      }
+      if (tree.length === state.doc.length) {
+        /**
+         * Validation will stop at the syntax error and will treat everything till the end of the document as error
+         */
+        let hasSyntaxError = false;
+        let errors: {
+          text: string;
+          from: number;
+          to: number;
+        }[] = [];
+        let errorPos: number | null = null;
+        tree.iterate({
+          enter: (syntaxNodeRef) => {
+            if (hasSyntaxError) {
+              return;
+            }
+            const treeNode = syntaxNodeRef.node;
+            if (treeNode.type.name === "VariableUse") {
+              const variableUse = this.text.slice(treeNode.from, treeNode.to);
+              if (!this.isVariableUseValid(variableUse)) {
+                errors.push({
+                  from: treeNode.node.from,
+                  to: treeNode.node.to,
+                  text: `Variable "${this.getVariableNameFromTheUse(variableUse)}" does not exist`,
+                });
+              }
+            } else if (syntaxNodeRef.type.isError) {
+              errorPos = syntaxNodeRef.from;
+              errors.push({
+                from: errorPos,
+                to: state.doc.length,
+                text: "Syntax error",
+              });
+              hasSyntaxError = true;
+            }
+          },
+        });
+        const lintingSuggestions = errors.map((err) => {
+          return {
+            from: err.from,
+            to: err.to,
+            severity: "error",
+            message: err.text,
+          } as any; // I have to use any in order to overcome types incompatibility, as needed simple type of the Severity is not exported
+        });
+        return lintingSuggestions;
+      }
+      return [];
+    },
+    {
+      delay: 0,
+    },
+  );
+
   public get text(): string {
-    return this.editorView.state.doc.toString();
+    return this._cachedText;
   }
 
   public set text(newText: string) {
@@ -90,6 +184,7 @@ export class AmiTemplateStringEditor {
    */
   public set vars(vars: IAmiTemplateStringVariableDescriptor[]) {
     this.currentVars = vars;
+    this.forceLinting();
   }
 
   public onTextChange(callback: (str: string) => void) {
@@ -112,24 +207,41 @@ export class AmiTemplateStringEditor {
     this.textChangeCallbacks = [];
   }
 
+  private isVariableUseValid(variableUseStr: string): boolean {
+    const variableName = this.getVariableNameFromTheUse(variableUseStr);
+    return this.vars.some((v) => {
+      return v.name === variableName;
+    });
+  }
+
+  private getVariableNameFromTheUse(variableUse: string): string {
+    return variableUse.replace("}", "").replace("{", "").trim();
+  }
+
   private editorView: EditorView;
   /**
    * List of completions which editor will use for autocompleting
    */
   private currentVars: IAmiTemplateStringVariableDescriptor[] = [];
 
-  private textChangeCallbacks: Array<(str: string) => void> = [];
+  private textChangeCallbacks: Array<(str: string) => void> = [
+    () => {
+      this._cachedText = this.editorView.state.doc.toString();
+    },
+  ];
 
   /**
    * Holds logic for showing autocompletion options and applying them to the editor
    */
-  private async getAutocompleteOptions(
+  private getAutocompleteOptions(
     context: CompletionContext,
-  ): Promise<CompletionResult | null> {
+  ): CompletionResult | null {
     const autocompleteMatch = context.matchBefore(/\{\s*\S*/);
     if (autocompleteMatch) {
+      const nextBracketIndex = this.text.indexOf("}", autocompleteMatch.from);
       return {
         from: autocompleteMatch.from + 1,
+        to: nextBracketIndex === -1 ? undefined : nextBracketIndex,
         options: this.currentVars.map((varDescriptor) => {
           return {
             label: varDescriptor.name,
@@ -142,23 +254,30 @@ export class AmiTemplateStringEditor {
     }
   }
 
+  private getLinter() {
+    return;
+  }
+
+  private forceLinting() {
+    this.text = this.text;
+  }
+
   constructor(params: IAmiTemplateStringEditorParams) {
+    const initialText = params.initialText || "";
+    this._cachedText = initialText;
     this.editorView = new EditorView({
-      doc: params.initialText || "",
+      doc: initialText,
       extensions: [
-        closeBrackets(),
         history(),
         new LanguageSupport(AmiTemplateLanguage),
         highlightSpecialChars(),
         AmiTheme,
+        this._linter,
         syntaxHighlighting(AmiHighlighting, { fallback: true }),
         autocompletion({
           override: [this.getAutocompleteOptions.bind(this)],
           activateOnTyping: true,
         }),
-        /**
-         * This will call externally-provided callback when text value of the editor changes
-         */
         EditorView.updateListener.of((viewUpdate) => {
           if (viewUpdate.docChanged) {
             const currentNewText = this.text;
@@ -174,11 +293,9 @@ export class AmiTemplateStringEditor {
             }
           }
         }),
+        closeBrackets(),
       ],
       parent: document.body,
     });
   }
 }
-
-// debugging
-export const atl = AmiTemplateLanguage;

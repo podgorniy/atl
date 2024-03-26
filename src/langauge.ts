@@ -7,7 +7,7 @@ export const AmiTemplateLanguage = LRLanguage.define({
     props: [
       styleTags({
         VariableUse: tags.variableName,
-        Text: tags.literal
+        Text: tags.literal,
       }),
     ],
   }),

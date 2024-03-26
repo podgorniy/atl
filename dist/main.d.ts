@@ -47,6 +47,7 @@ export declare class AmiTemplateStringEditor {
      * Holds logic for showing autocompletion options and applying them to the editor
      */
     private getAutocompleteOptions;
+    private lint;
     constructor(params: IAmiTemplateStringEditorParams);
 }
 export declare const atl: import("@codemirror/language").LRLanguage;

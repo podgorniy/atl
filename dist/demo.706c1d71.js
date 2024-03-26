@@ -585,11 +585,7 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 
 },{}],"jTl6u":[function(require,module,exports) {
 var _mainJs = require("./main.js");
-const te = new (0, _mainJs.AmiTemplateStringEditor)({
-    initialText: "This is carstock of {type} with feature { catstock feature}",
-    targetNode: document.getElementById("codemirror")
-});
-te.vars = [
+const dutchVars = [
     {
         name: "merk",
         explanation: "Auto merk"
@@ -614,7 +610,46 @@ te.vars = [
         name: "uitvoering",
         explanation: "Auto grade"
     }
-]; // const t = parser.parse('{who} did {what}')
+];
+const englishVars = [
+    {
+        name: "brand",
+        explanation: "Car brand"
+    },
+    {
+        name: "model",
+        explanation: "Car model"
+    },
+    {
+        name: "modelyear",
+        explanation: "Carmodel year, a number"
+    },
+    {
+        name: "modelversion",
+        explanation: "Carmodel version"
+    },
+    {
+        name: "configuration",
+        explanation: "Car configuration"
+    },
+    {
+        name: "grade",
+        explanation: "Car grade"
+    }
+];
+const te = new (0, _mainJs.AmiTemplateStringEditor)({
+    initialText: "This is carstock of {type} with feature { catstock feature}",
+    targetNode: document.getElementById("codemirror")
+});
+te.vars = dutchVars;
+// @ts-ignore
+window["te"] = te;
+document.getElementById("nl").addEventListener("click", ()=>{
+    te.vars = dutchVars;
+});
+document.getElementById("en").addEventListener("click", ()=>{
+    te.vars = englishVars;
+}); // const t = parser.parse('{who} did {what}')
  // t.cursor().iterate((node) => {
  //     console.log('node:enter', node)
  //     console.log('node', node.node)
@@ -628,53 +663,47 @@ te.vars = [
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "AmiTemplateStringEditor", ()=>AmiTemplateStringEditor);
-parcelHelpers.export(exports, "atl", ()=>atl);
 var _view = require("@codemirror/view");
 var _autocomplete = require("@codemirror/autocomplete");
 var _commands = require("@codemirror/commands");
 var _language = require("@codemirror/language");
 var _langaugeJs = require("./langauge.js");
 var _highlight = require("@lezer/highlight");
-var __awaiter = undefined && undefined.__awaiter || function(thisArg, _arguments, P, generator) {
-    function adopt(value) {
-        return value instanceof P ? value : new P(function(resolve) {
-            resolve(value);
-        });
-    }
-    return new (P || (P = Promise))(function(resolve, reject) {
-        function fulfilled(value) {
-            try {
-                step(generator.next(value));
-            } catch (e) {
-                reject(e);
-            }
-        }
-        function rejected(value) {
-            try {
-                step(generator["throw"](value));
-            } catch (e) {
-                reject(e);
-            }
-        }
-        function step(result) {
-            result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-        }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-let AmiTheme = (0, _view.EditorView).baseTheme({
+var _lint = require("@codemirror/lint");
+/**
+ * Editor there, not same as code highlighting
+ */ let AmiTheme = (0, _view.EditorView).baseTheme({
     ".cm-content": {
         fontFamily: "Roboto,Helvetica Neue,sans-serif"
     },
+    ".cm-tooltip": {
+        fontFamily: "Roboto,Helvetica Neue,sans-serif"
+    },
     ".ami-var-use": {
-        border: "1px solid #b6effb",
-        color: "#055160",
-        backgroundColor: "#cff4fc",
+        border: "1px solid #badbcc",
+        color: "#0f5132",
+        backgroundColor: "#d1e7dd",
         borderRadius: "3px",
         margin: "-1px"
+    },
+    ".cm-lintRange-error .ami-var-use": {
+        backgroundColor: "#f8d7da",
+        color: "#842029",
+        borderColor: "#f5c2c7"
+    },
+    ".cm-lintRange-error": {
+        border: "1px solid #badbcc",
+        backgroundColor: "#f8d7da",
+        color: "#842029",
+        borderColor: "#f5c2c7",
+        borderRadius: "3px",
+        margin: "-1px",
+        backgroundImage: "none!important"
     }
 });
-let AmiHighlighting = (0, _language.HighlightStyle).define([
+/**
+ * Code highlighting, not same as editor theme
+ */ let AmiHighlighting = (0, _language.HighlightStyle).define([
     {
         tag: (0, _highlight.tags).variableName,
         class: "ami-var-use"
@@ -686,7 +715,7 @@ let AmiHighlighting = (0, _language.HighlightStyle).define([
 ]);
 class AmiTemplateStringEditor {
     get text() {
-        return this.editorView.state.doc.toString();
+        return this._cachedText;
     }
     set text(newText) {
         this.editorView.dispatch(this.editorView.state.update({
@@ -707,6 +736,7 @@ class AmiTemplateStringEditor {
      * @param vars
      */ set vars(vars) {
         this.currentVars = vars;
+        this.forceLinting();
     }
     onTextChange(callback) {
         // First callback added, then add callback to the editor
@@ -724,13 +754,24 @@ class AmiTemplateStringEditor {
         this.editorView.destroy();
         this.textChangeCallbacks = [];
     }
+    isVariableUseValid(variableUseStr) {
+        const variableName = this.getVariableNameFromTheUse(variableUseStr);
+        return this.vars.some((v)=>{
+            return v.name === variableName;
+        });
+    }
+    getVariableNameFromTheUse(variableUse) {
+        return variableUse.replace("}", "").replace("{", "").trim();
+    }
     /**
      * Holds logic for showing autocompletion options and applying them to the editor
      */ getAutocompleteOptions(context) {
-        return __awaiter(this, void 0, void 0, function*() {
-            const autocompleteMatch = context.matchBefore(/\{\s*\S*/);
-            if (autocompleteMatch) return {
+        const autocompleteMatch = context.matchBefore(/\{\s*\S*/);
+        if (autocompleteMatch) {
+            const nextBracketIndex = this.text.indexOf("}", autocompleteMatch.from);
+            return {
                 from: autocompleteMatch.from + 1,
+                to: nextBracketIndex === -1 ? undefined : nextBracketIndex,
                 options: this.currentVars.map((varDescriptor)=>{
                     return {
                         label: varDescriptor.name,
@@ -738,22 +779,84 @@ class AmiTemplateStringEditor {
                     };
                 })
             };
-            else return null;
-        });
+        } else return null;
+    }
+    getLinter() {
+        return;
+    }
+    forceLinting() {
+        this.text = this.text;
     }
     constructor(params){
         /**
+         * Flag shows if input has errors. Error is unclosed bracket or usage of the variable which is not in the list of allowed ones
+         */ this.hasErrors = false;
+        this._cachedText = "";
+        this._linter = (0, _lint.linter)((view)=>{
+            const state = view.state;
+            const tree = (0, _language.syntaxTree)(state);
+            // Don't validate empty doc
+            if (this.text.length === 0) return [];
+            if (tree.length === state.doc.length) {
+                /**
+                 * Validation will stop at the syntax error and will treat everything till the end of the document as error
+                 */ let hasSyntaxError = false;
+                let errors = [];
+                let errorPos = null;
+                tree.iterate({
+                    enter: (syntaxNodeRef)=>{
+                        if (hasSyntaxError) return;
+                        const treeNode = syntaxNodeRef.node;
+                        if (treeNode.type.name === "VariableUse") {
+                            const variableUse = this.text.slice(treeNode.from, treeNode.to);
+                            if (!this.isVariableUseValid(variableUse)) errors.push({
+                                from: treeNode.node.from,
+                                to: treeNode.node.to,
+                                text: `Variable "${this.getVariableNameFromTheUse(variableUse)}" does not exist`
+                            });
+                        } else if (syntaxNodeRef.type.isError) {
+                            errorPos = syntaxNodeRef.from;
+                            errors.push({
+                                from: errorPos,
+                                to: state.doc.length,
+                                text: "Syntax error"
+                            });
+                            hasSyntaxError = true;
+                        }
+                    }
+                });
+                const lintingSuggestions = errors.map((err)=>{
+                    return {
+                        from: err.from,
+                        to: err.to,
+                        severity: "error",
+                        message: err.text
+                    }; // I have to use any in order to overcome types incompatibility, as needed simple type of the Severity is not exported
+                });
+                return lintingSuggestions;
+            }
+            return [];
+        }, {
+            delay: 0
+        });
+        /**
          * List of completions which editor will use for autocompleting
          */ this.currentVars = [];
-        this.textChangeCallbacks = [];
+        this.textChangeCallbacks = [
+            ()=>{
+                this._cachedText = this.editorView.state.doc.toString();
+            }
+        ];
+        const initialText = params.initialText || "";
+        this._cachedText = initialText;
         this.editorView = new (0, _view.EditorView)({
-            doc: params.initialText || "",
+            doc: initialText,
             extensions: [
-                (0, _autocomplete.closeBrackets)(),
                 (0, _commands.history)(),
                 new (0, _language.LanguageSupport)((0, _langaugeJs.AmiTemplateLanguage)),
                 (0, _view.highlightSpecialChars)(),
                 AmiTheme,
+                this._linter,
                 (0, _language.syntaxHighlighting)(AmiHighlighting, {
                     fallback: true
                 }),
@@ -763,9 +866,7 @@ class AmiTemplateStringEditor {
                     ],
                     activateOnTyping: true
                 }),
-                /**
-                 * This will call externally-provided callback when text value of the editor changes
-                 */ (0, _view.EditorView).updateListener.of((viewUpdate)=>{
+                (0, _view.EditorView).updateListener.of((viewUpdate)=>{
                     if (viewUpdate.docChanged) {
                         const currentNewText = this.text;
                         for(let i = 0; i < this.textChangeCallbacks.length; i += 1)try {
@@ -775,15 +876,15 @@ class AmiTemplateStringEditor {
                             console.error(err);
                         }
                     }
-                })
+                }),
+                (0, _autocomplete.closeBrackets)()
             ],
             parent: document.body
         });
     }
 }
-const atl = (0, _langaugeJs.AmiTemplateLanguage);
 
-},{"@codemirror/view":"fBkgq","@codemirror/autocomplete":"daAey","@codemirror/commands":"eGPMG","@codemirror/language":"gATQT","./langauge.js":"4nZvv","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","@lezer/highlight":"jPvEX"}],"fBkgq":[function(require,module,exports) {
+},{"@codemirror/view":"fBkgq","@codemirror/autocomplete":"daAey","@codemirror/commands":"eGPMG","@codemirror/language":"gATQT","./langauge.js":"4nZvv","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","@lezer/highlight":"jPvEX","@codemirror/lint":"5PM0d"}],"fBkgq":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "BidiSpan", ()=>BidiSpan);
@@ -23940,7 +24041,7 @@ const parser = (0, _lr.LRParser).deserialize({
         0
     ],
     topRules: {
-        "TemplateString": [
+        TemplateString: [
             0,
             1
         ]
@@ -25676,6 +25777,855 @@ process.umask = function() {
     return 0;
 };
 
-},{}]},["3eJKs","jTl6u"], "jTl6u", "parcelRequire9fcb")
+},{}],"5PM0d":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "closeLintPanel", ()=>closeLintPanel);
+parcelHelpers.export(exports, "diagnosticCount", ()=>diagnosticCount);
+parcelHelpers.export(exports, "forEachDiagnostic", ()=>forEachDiagnostic);
+parcelHelpers.export(exports, "forceLinting", ()=>forceLinting);
+parcelHelpers.export(exports, "lintGutter", ()=>lintGutter);
+parcelHelpers.export(exports, "lintKeymap", ()=>lintKeymap);
+parcelHelpers.export(exports, "linter", ()=>linter);
+parcelHelpers.export(exports, "nextDiagnostic", ()=>nextDiagnostic);
+parcelHelpers.export(exports, "openLintPanel", ()=>openLintPanel);
+parcelHelpers.export(exports, "previousDiagnostic", ()=>previousDiagnostic);
+parcelHelpers.export(exports, "setDiagnostics", ()=>setDiagnostics);
+parcelHelpers.export(exports, "setDiagnosticsEffect", ()=>setDiagnosticsEffect);
+var _view = require("@codemirror/view");
+var _state = require("@codemirror/state");
+var _crelt = require("crelt");
+var _creltDefault = parcelHelpers.interopDefault(_crelt);
+class SelectedDiagnostic {
+    constructor(from, to, diagnostic){
+        this.from = from;
+        this.to = to;
+        this.diagnostic = diagnostic;
+    }
+}
+class LintState {
+    constructor(diagnostics, panel, selected){
+        this.diagnostics = diagnostics;
+        this.panel = panel;
+        this.selected = selected;
+    }
+    static init(diagnostics, panel, state) {
+        // Filter the list of diagnostics for which to create markers
+        let markedDiagnostics = diagnostics;
+        let diagnosticFilter = state.facet(lintConfig).markerFilter;
+        if (diagnosticFilter) markedDiagnostics = diagnosticFilter(markedDiagnostics, state);
+        let ranges = (0, _view.Decoration).set(markedDiagnostics.map((d)=>{
+            // For zero-length ranges or ranges covering only a line break, create a widget
+            return d.from == d.to || d.from == d.to - 1 && state.doc.lineAt(d.from).to == d.from ? (0, _view.Decoration).widget({
+                widget: new DiagnosticWidget(d),
+                diagnostic: d
+            }).range(d.from) : (0, _view.Decoration).mark({
+                attributes: {
+                    class: "cm-lintRange cm-lintRange-" + d.severity + (d.markClass ? " " + d.markClass : "")
+                },
+                diagnostic: d,
+                inclusive: true
+            }).range(d.from, d.to);
+        }), true);
+        return new LintState(ranges, panel, findDiagnostic(ranges));
+    }
+}
+function findDiagnostic(diagnostics, diagnostic = null, after = 0) {
+    let found = null;
+    diagnostics.between(after, 1e9, (from, to, { spec })=>{
+        if (diagnostic && spec.diagnostic != diagnostic) return;
+        found = new SelectedDiagnostic(from, to, spec.diagnostic);
+        return false;
+    });
+    return found;
+}
+function hideTooltip(tr, tooltip) {
+    let line = tr.startState.doc.lineAt(tooltip.pos);
+    return !!(tr.effects.some((e)=>e.is(setDiagnosticsEffect)) || tr.changes.touchesRange(line.from, line.to));
+}
+function maybeEnableLint(state, effects) {
+    return state.field(lintState, false) ? effects : effects.concat((0, _state.StateEffect).appendConfig.of(lintExtensions));
+}
+/**
+Returns a transaction spec which updates the current set of
+diagnostics, and enables the lint extension if if wasn't already
+active.
+*/ function setDiagnostics(state, diagnostics) {
+    return {
+        effects: maybeEnableLint(state, [
+            setDiagnosticsEffect.of(diagnostics)
+        ])
+    };
+}
+/**
+The state effect that updates the set of active diagnostics. Can
+be useful when writing an extension that needs to track these.
+*/ const setDiagnosticsEffect = /*@__PURE__*/ (0, _state.StateEffect).define();
+const togglePanel = /*@__PURE__*/ (0, _state.StateEffect).define();
+const movePanelSelection = /*@__PURE__*/ (0, _state.StateEffect).define();
+const lintState = /*@__PURE__*/ (0, _state.StateField).define({
+    create () {
+        return new LintState((0, _view.Decoration).none, null, null);
+    },
+    update (value, tr) {
+        if (tr.docChanged) {
+            let mapped = value.diagnostics.map(tr.changes), selected = null;
+            if (value.selected) {
+                let selPos = tr.changes.mapPos(value.selected.from, 1);
+                selected = findDiagnostic(mapped, value.selected.diagnostic, selPos) || findDiagnostic(mapped, null, selPos);
+            }
+            value = new LintState(mapped, value.panel, selected);
+        }
+        for (let effect of tr.effects){
+            if (effect.is(setDiagnosticsEffect)) value = LintState.init(effect.value, value.panel, tr.state);
+            else if (effect.is(togglePanel)) value = new LintState(value.diagnostics, effect.value ? LintPanel.open : null, value.selected);
+            else if (effect.is(movePanelSelection)) value = new LintState(value.diagnostics, value.panel, effect.value);
+        }
+        return value;
+    },
+    provide: (f)=>[
+            (0, _view.showPanel).from(f, (val)=>val.panel),
+            (0, _view.EditorView).decorations.from(f, (s)=>s.diagnostics)
+        ]
+});
+/**
+Returns the number of active lint diagnostics in the given state.
+*/ function diagnosticCount(state) {
+    let lint = state.field(lintState, false);
+    return lint ? lint.diagnostics.size : 0;
+}
+const activeMark = /*@__PURE__*/ (0, _view.Decoration).mark({
+    class: "cm-lintRange cm-lintRange-active",
+    inclusive: true
+});
+function lintTooltip(view, pos, side) {
+    let { diagnostics } = view.state.field(lintState);
+    let found = [], stackStart = 2e8, stackEnd = 0;
+    diagnostics.between(pos - (side < 0 ? 1 : 0), pos + (side > 0 ? 1 : 0), (from, to, { spec })=>{
+        if (pos >= from && pos <= to && (from == to || (pos > from || side > 0) && (pos < to || side < 0))) {
+            found.push(spec.diagnostic);
+            stackStart = Math.min(from, stackStart);
+            stackEnd = Math.max(to, stackEnd);
+        }
+    });
+    let diagnosticFilter = view.state.facet(lintConfig).tooltipFilter;
+    if (diagnosticFilter) found = diagnosticFilter(found, view.state);
+    if (!found.length) return null;
+    return {
+        pos: stackStart,
+        end: stackEnd,
+        above: view.state.doc.lineAt(stackStart).to < stackEnd,
+        create () {
+            return {
+                dom: diagnosticsTooltip(view, found)
+            };
+        }
+    };
+}
+function diagnosticsTooltip(view, diagnostics) {
+    return (0, _creltDefault.default)("ul", {
+        class: "cm-tooltip-lint"
+    }, diagnostics.map((d)=>renderDiagnostic(view, d, false)));
+}
+/**
+Command to open and focus the lint panel.
+*/ const openLintPanel = (view)=>{
+    let field = view.state.field(lintState, false);
+    if (!field || !field.panel) view.dispatch({
+        effects: maybeEnableLint(view.state, [
+            togglePanel.of(true)
+        ])
+    });
+    let panel = (0, _view.getPanel)(view, LintPanel.open);
+    if (panel) panel.dom.querySelector(".cm-panel-lint ul").focus();
+    return true;
+};
+/**
+Command to close the lint panel, when open.
+*/ const closeLintPanel = (view)=>{
+    let field = view.state.field(lintState, false);
+    if (!field || !field.panel) return false;
+    view.dispatch({
+        effects: togglePanel.of(false)
+    });
+    return true;
+};
+/**
+Move the selection to the next diagnostic.
+*/ const nextDiagnostic = (view)=>{
+    let field = view.state.field(lintState, false);
+    if (!field) return false;
+    let sel = view.state.selection.main, next = field.diagnostics.iter(sel.to + 1);
+    if (!next.value) {
+        next = field.diagnostics.iter(0);
+        if (!next.value || next.from == sel.from && next.to == sel.to) return false;
+    }
+    view.dispatch({
+        selection: {
+            anchor: next.from,
+            head: next.to
+        },
+        scrollIntoView: true
+    });
+    return true;
+};
+/**
+Move the selection to the previous diagnostic.
+*/ const previousDiagnostic = (view)=>{
+    let { state } = view, field = state.field(lintState, false);
+    if (!field) return false;
+    let sel = state.selection.main;
+    let prevFrom, prevTo, lastFrom, lastTo;
+    field.diagnostics.between(0, state.doc.length, (from, to)=>{
+        if (to < sel.to && (prevFrom == null || prevFrom < from)) {
+            prevFrom = from;
+            prevTo = to;
+        }
+        if (lastFrom == null || from > lastFrom) {
+            lastFrom = from;
+            lastTo = to;
+        }
+    });
+    if (lastFrom == null || prevFrom == null && lastFrom == sel.from) return false;
+    view.dispatch({
+        selection: {
+            anchor: prevFrom !== null && prevFrom !== void 0 ? prevFrom : lastFrom,
+            head: prevTo !== null && prevTo !== void 0 ? prevTo : lastTo
+        },
+        scrollIntoView: true
+    });
+    return true;
+};
+/**
+A set of default key bindings for the lint functionality.
+
+- Ctrl-Shift-m (Cmd-Shift-m on macOS): [`openLintPanel`](https://codemirror.net/6/docs/ref/#lint.openLintPanel)
+- F8: [`nextDiagnostic`](https://codemirror.net/6/docs/ref/#lint.nextDiagnostic)
+*/ const lintKeymap = [
+    {
+        key: "Mod-Shift-m",
+        run: openLintPanel,
+        preventDefault: true
+    },
+    {
+        key: "F8",
+        run: nextDiagnostic
+    }
+];
+const lintPlugin = /*@__PURE__*/ (0, _view.ViewPlugin).fromClass(class {
+    constructor(view){
+        this.view = view;
+        this.timeout = -1;
+        this.set = true;
+        let { delay } = view.state.facet(lintConfig);
+        this.lintTime = Date.now() + delay;
+        this.run = this.run.bind(this);
+        this.timeout = setTimeout(this.run, delay);
+    }
+    run() {
+        let now = Date.now();
+        if (now < this.lintTime - 10) this.timeout = setTimeout(this.run, this.lintTime - now);
+        else {
+            this.set = false;
+            let { state } = this.view, { sources } = state.facet(lintConfig);
+            if (sources.length) Promise.all(sources.map((source)=>Promise.resolve(source(this.view)))).then((annotations)=>{
+                let all = annotations.reduce((a, b)=>a.concat(b));
+                if (this.view.state.doc == state.doc) this.view.dispatch(setDiagnostics(this.view.state, all));
+            }, (error)=>{
+                (0, _view.logException)(this.view.state, error);
+            });
+        }
+    }
+    update(update) {
+        let config = update.state.facet(lintConfig);
+        if (update.docChanged || config != update.startState.facet(lintConfig) || config.needsRefresh && config.needsRefresh(update)) {
+            this.lintTime = Date.now() + config.delay;
+            if (!this.set) {
+                this.set = true;
+                this.timeout = setTimeout(this.run, config.delay);
+            }
+        }
+    }
+    force() {
+        if (this.set) {
+            this.lintTime = Date.now();
+            this.run();
+        }
+    }
+    destroy() {
+        clearTimeout(this.timeout);
+    }
+});
+const lintConfig = /*@__PURE__*/ (0, _state.Facet).define({
+    combine (input) {
+        return Object.assign({
+            sources: input.map((i)=>i.source).filter((x)=>x != null)
+        }, (0, _state.combineConfig)(input.map((i)=>i.config), {
+            delay: 750,
+            markerFilter: null,
+            tooltipFilter: null,
+            needsRefresh: null
+        }, {
+            needsRefresh: (a, b)=>!a ? b : !b ? a : (u)=>a(u) || b(u)
+        }));
+    }
+});
+/**
+Given a diagnostic source, this function returns an extension that
+enables linting with that source. It will be called whenever the
+editor is idle (after its content changed). If `null` is given as
+source, this only configures the lint extension.
+*/ function linter(source, config = {}) {
+    return [
+        lintConfig.of({
+            source,
+            config
+        }),
+        lintPlugin,
+        lintExtensions
+    ];
+}
+/**
+Forces any linters [configured](https://codemirror.net/6/docs/ref/#lint.linter) to run when the
+editor is idle to run right away.
+*/ function forceLinting(view) {
+    let plugin = view.plugin(lintPlugin);
+    if (plugin) plugin.force();
+}
+function assignKeys(actions) {
+    let assigned = [];
+    if (actions) actions: for (let { name } of actions){
+        for(let i = 0; i < name.length; i++){
+            let ch = name[i];
+            if (/[a-zA-Z]/.test(ch) && !assigned.some((c)=>c.toLowerCase() == ch.toLowerCase())) {
+                assigned.push(ch);
+                continue actions;
+            }
+        }
+        assigned.push("");
+    }
+    return assigned;
+}
+function renderDiagnostic(view, diagnostic, inPanel) {
+    var _a;
+    let keys = inPanel ? assignKeys(diagnostic.actions) : [];
+    return (0, _creltDefault.default)("li", {
+        class: "cm-diagnostic cm-diagnostic-" + diagnostic.severity
+    }, (0, _creltDefault.default)("span", {
+        class: "cm-diagnosticText"
+    }, diagnostic.renderMessage ? diagnostic.renderMessage() : diagnostic.message), (_a = diagnostic.actions) === null || _a === void 0 ? void 0 : _a.map((action, i)=>{
+        let fired = false, click = (e)=>{
+            e.preventDefault();
+            if (fired) return;
+            fired = true;
+            let found = findDiagnostic(view.state.field(lintState).diagnostics, diagnostic);
+            if (found) action.apply(view, found.from, found.to);
+        };
+        let { name } = action, keyIndex = keys[i] ? name.indexOf(keys[i]) : -1;
+        let nameElt = keyIndex < 0 ? name : [
+            name.slice(0, keyIndex),
+            (0, _creltDefault.default)("u", name.slice(keyIndex, keyIndex + 1)),
+            name.slice(keyIndex + 1)
+        ];
+        return (0, _creltDefault.default)("button", {
+            type: "button",
+            class: "cm-diagnosticAction",
+            onclick: click,
+            onmousedown: click,
+            "aria-label": ` Action: ${name}${keyIndex < 0 ? "" : ` (access key "${keys[i]})"`}.`
+        }, nameElt);
+    }), diagnostic.source && (0, _creltDefault.default)("div", {
+        class: "cm-diagnosticSource"
+    }, diagnostic.source));
+}
+class DiagnosticWidget extends (0, _view.WidgetType) {
+    constructor(diagnostic){
+        super();
+        this.diagnostic = diagnostic;
+    }
+    eq(other) {
+        return other.diagnostic == this.diagnostic;
+    }
+    toDOM() {
+        return (0, _creltDefault.default)("span", {
+            class: "cm-lintPoint cm-lintPoint-" + this.diagnostic.severity
+        });
+    }
+}
+class PanelItem {
+    constructor(view, diagnostic){
+        this.diagnostic = diagnostic;
+        this.id = "item_" + Math.floor(Math.random() * 0xffffffff).toString(16);
+        this.dom = renderDiagnostic(view, diagnostic, true);
+        this.dom.id = this.id;
+        this.dom.setAttribute("role", "option");
+    }
+}
+class LintPanel {
+    constructor(view){
+        this.view = view;
+        this.items = [];
+        let onkeydown = (event)=>{
+            if (event.keyCode == 27) {
+                closeLintPanel(this.view);
+                this.view.focus();
+            } else if (event.keyCode == 38 || event.keyCode == 33) this.moveSelection((this.selectedIndex - 1 + this.items.length) % this.items.length);
+            else if (event.keyCode == 40 || event.keyCode == 34) this.moveSelection((this.selectedIndex + 1) % this.items.length);
+            else if (event.keyCode == 36) this.moveSelection(0);
+            else if (event.keyCode == 35) this.moveSelection(this.items.length - 1);
+            else if (event.keyCode == 13) this.view.focus();
+            else if (event.keyCode >= 65 && event.keyCode <= 90 && this.selectedIndex >= 0) {
+                let { diagnostic } = this.items[this.selectedIndex], keys = assignKeys(diagnostic.actions);
+                for(let i = 0; i < keys.length; i++)if (keys[i].toUpperCase().charCodeAt(0) == event.keyCode) {
+                    let found = findDiagnostic(this.view.state.field(lintState).diagnostics, diagnostic);
+                    if (found) diagnostic.actions[i].apply(view, found.from, found.to);
+                }
+            } else return;
+            event.preventDefault();
+        };
+        let onclick = (event)=>{
+            for(let i = 0; i < this.items.length; i++)if (this.items[i].dom.contains(event.target)) this.moveSelection(i);
+        };
+        this.list = (0, _creltDefault.default)("ul", {
+            tabIndex: 0,
+            role: "listbox",
+            "aria-label": this.view.state.phrase("Diagnostics"),
+            onkeydown,
+            onclick
+        });
+        this.dom = (0, _creltDefault.default)("div", {
+            class: "cm-panel-lint"
+        }, this.list, (0, _creltDefault.default)("button", {
+            type: "button",
+            name: "close",
+            "aria-label": this.view.state.phrase("close"),
+            onclick: ()=>closeLintPanel(this.view)
+        }, "\xd7"));
+        this.update();
+    }
+    get selectedIndex() {
+        let selected = this.view.state.field(lintState).selected;
+        if (!selected) return -1;
+        for(let i = 0; i < this.items.length; i++)if (this.items[i].diagnostic == selected.diagnostic) return i;
+        return -1;
+    }
+    update() {
+        let { diagnostics, selected } = this.view.state.field(lintState);
+        let i = 0, needsSync = false, newSelectedItem = null;
+        diagnostics.between(0, this.view.state.doc.length, (_start, _end, { spec })=>{
+            let found = -1, item;
+            for(let j = i; j < this.items.length; j++)if (this.items[j].diagnostic == spec.diagnostic) {
+                found = j;
+                break;
+            }
+            if (found < 0) {
+                item = new PanelItem(this.view, spec.diagnostic);
+                this.items.splice(i, 0, item);
+                needsSync = true;
+            } else {
+                item = this.items[found];
+                if (found > i) {
+                    this.items.splice(i, found - i);
+                    needsSync = true;
+                }
+            }
+            if (selected && item.diagnostic == selected.diagnostic) {
+                if (!item.dom.hasAttribute("aria-selected")) {
+                    item.dom.setAttribute("aria-selected", "true");
+                    newSelectedItem = item;
+                }
+            } else if (item.dom.hasAttribute("aria-selected")) item.dom.removeAttribute("aria-selected");
+            i++;
+        });
+        while(i < this.items.length && !(this.items.length == 1 && this.items[0].diagnostic.from < 0)){
+            needsSync = true;
+            this.items.pop();
+        }
+        if (this.items.length == 0) {
+            this.items.push(new PanelItem(this.view, {
+                from: -1,
+                to: -1,
+                severity: "info",
+                message: this.view.state.phrase("No diagnostics")
+            }));
+            needsSync = true;
+        }
+        if (newSelectedItem) {
+            this.list.setAttribute("aria-activedescendant", newSelectedItem.id);
+            this.view.requestMeasure({
+                key: this,
+                read: ()=>({
+                        sel: newSelectedItem.dom.getBoundingClientRect(),
+                        panel: this.list.getBoundingClientRect()
+                    }),
+                write: ({ sel, panel })=>{
+                    let scaleY = panel.height / this.list.offsetHeight;
+                    if (sel.top < panel.top) this.list.scrollTop -= (panel.top - sel.top) / scaleY;
+                    else if (sel.bottom > panel.bottom) this.list.scrollTop += (sel.bottom - panel.bottom) / scaleY;
+                }
+            });
+        } else if (this.selectedIndex < 0) this.list.removeAttribute("aria-activedescendant");
+        if (needsSync) this.sync();
+    }
+    sync() {
+        let domPos = this.list.firstChild;
+        function rm() {
+            let prev = domPos;
+            domPos = prev.nextSibling;
+            prev.remove();
+        }
+        for (let item of this.items)if (item.dom.parentNode == this.list) {
+            while(domPos != item.dom)rm();
+            domPos = item.dom.nextSibling;
+        } else this.list.insertBefore(item.dom, domPos);
+        while(domPos)rm();
+    }
+    moveSelection(selectedIndex) {
+        if (this.selectedIndex < 0) return;
+        let field = this.view.state.field(lintState);
+        let selection = findDiagnostic(field.diagnostics, this.items[selectedIndex].diagnostic);
+        if (!selection) return;
+        this.view.dispatch({
+            selection: {
+                anchor: selection.from,
+                head: selection.to
+            },
+            scrollIntoView: true,
+            effects: movePanelSelection.of(selection)
+        });
+    }
+    static open(view) {
+        return new LintPanel(view);
+    }
+}
+function svg(content, attrs = `viewBox="0 0 40 40"`) {
+    return `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" ${attrs}>${encodeURIComponent(content)}</svg>')`;
+}
+function underline(color) {
+    return svg(`<path d="m0 2.5 l2 -1.5 l1 0 l2 1.5 l1 0" stroke="${color}" fill="none" stroke-width=".7"/>`, `width="6" height="3"`);
+}
+const baseTheme = /*@__PURE__*/ (0, _view.EditorView).baseTheme({
+    ".cm-diagnostic": {
+        padding: "3px 6px 3px 8px",
+        marginLeft: "-1px",
+        display: "block",
+        whiteSpace: "pre-wrap"
+    },
+    ".cm-diagnostic-error": {
+        borderLeft: "5px solid #d11"
+    },
+    ".cm-diagnostic-warning": {
+        borderLeft: "5px solid orange"
+    },
+    ".cm-diagnostic-info": {
+        borderLeft: "5px solid #999"
+    },
+    ".cm-diagnostic-hint": {
+        borderLeft: "5px solid #66d"
+    },
+    ".cm-diagnosticAction": {
+        font: "inherit",
+        border: "none",
+        padding: "2px 4px",
+        backgroundColor: "#444",
+        color: "white",
+        borderRadius: "3px",
+        marginLeft: "8px",
+        cursor: "pointer"
+    },
+    ".cm-diagnosticSource": {
+        fontSize: "70%",
+        opacity: .7
+    },
+    ".cm-lintRange": {
+        backgroundPosition: "left bottom",
+        backgroundRepeat: "repeat-x",
+        paddingBottom: "0.7px"
+    },
+    ".cm-lintRange-error": {
+        backgroundImage: /*@__PURE__*/ underline("#d11")
+    },
+    ".cm-lintRange-warning": {
+        backgroundImage: /*@__PURE__*/ underline("orange")
+    },
+    ".cm-lintRange-info": {
+        backgroundImage: /*@__PURE__*/ underline("#999")
+    },
+    ".cm-lintRange-hint": {
+        backgroundImage: /*@__PURE__*/ underline("#66d")
+    },
+    ".cm-lintRange-active": {
+        backgroundColor: "#ffdd9980"
+    },
+    ".cm-tooltip-lint": {
+        padding: 0,
+        margin: 0
+    },
+    ".cm-lintPoint": {
+        position: "relative",
+        "&:after": {
+            content: '""',
+            position: "absolute",
+            bottom: 0,
+            left: "-2px",
+            borderLeft: "3px solid transparent",
+            borderRight: "3px solid transparent",
+            borderBottom: "4px solid #d11"
+        }
+    },
+    ".cm-lintPoint-warning": {
+        "&:after": {
+            borderBottomColor: "orange"
+        }
+    },
+    ".cm-lintPoint-info": {
+        "&:after": {
+            borderBottomColor: "#999"
+        }
+    },
+    ".cm-lintPoint-hint": {
+        "&:after": {
+            borderBottomColor: "#66d"
+        }
+    },
+    ".cm-panel.cm-panel-lint": {
+        position: "relative",
+        "& ul": {
+            maxHeight: "100px",
+            overflowY: "auto",
+            "& [aria-selected]": {
+                backgroundColor: "#ddd",
+                "& u": {
+                    textDecoration: "underline"
+                }
+            },
+            "&:focus [aria-selected]": {
+                background_fallback: "#bdf",
+                backgroundColor: "Highlight",
+                color_fallback: "white",
+                color: "HighlightText"
+            },
+            "& u": {
+                textDecoration: "none"
+            },
+            padding: 0,
+            margin: 0
+        },
+        "& [name=close]": {
+            position: "absolute",
+            top: "0",
+            right: "2px",
+            background: "inherit",
+            border: "none",
+            font: "inherit",
+            padding: 0,
+            margin: 0
+        }
+    }
+});
+function severityWeight(sev) {
+    return sev == "error" ? 4 : sev == "warning" ? 3 : sev == "info" ? 2 : 1;
+}
+class LintGutterMarker extends (0, _view.GutterMarker) {
+    constructor(diagnostics){
+        super();
+        this.diagnostics = diagnostics;
+        this.severity = diagnostics.reduce((max, d)=>severityWeight(max) < severityWeight(d.severity) ? d.severity : max, "hint");
+    }
+    toDOM(view) {
+        let elt = document.createElement("div");
+        elt.className = "cm-lint-marker cm-lint-marker-" + this.severity;
+        let diagnostics = this.diagnostics;
+        let diagnosticsFilter = view.state.facet(lintGutterConfig).tooltipFilter;
+        if (diagnosticsFilter) diagnostics = diagnosticsFilter(diagnostics, view.state);
+        if (diagnostics.length) elt.onmouseover = ()=>gutterMarkerMouseOver(view, elt, diagnostics);
+        return elt;
+    }
+}
+function trackHoverOn(view, marker) {
+    let mousemove = (event)=>{
+        let rect = marker.getBoundingClientRect();
+        if (event.clientX > rect.left - 10 /* Hover.Margin */  && event.clientX < rect.right + 10 /* Hover.Margin */  && event.clientY > rect.top - 10 /* Hover.Margin */  && event.clientY < rect.bottom + 10 /* Hover.Margin */ ) return;
+        for(let target = event.target; target; target = target.parentNode){
+            if (target.nodeType == 1 && target.classList.contains("cm-tooltip-lint")) return;
+        }
+        window.removeEventListener("mousemove", mousemove);
+        if (view.state.field(lintGutterTooltip)) view.dispatch({
+            effects: setLintGutterTooltip.of(null)
+        });
+    };
+    window.addEventListener("mousemove", mousemove);
+}
+function gutterMarkerMouseOver(view, marker, diagnostics) {
+    function hovered() {
+        let line = view.elementAtHeight(marker.getBoundingClientRect().top + 5 - view.documentTop);
+        const linePos = view.coordsAtPos(line.from);
+        if (linePos) view.dispatch({
+            effects: setLintGutterTooltip.of({
+                pos: line.from,
+                above: false,
+                create () {
+                    return {
+                        dom: diagnosticsTooltip(view, diagnostics),
+                        getCoords: ()=>marker.getBoundingClientRect()
+                    };
+                }
+            })
+        });
+        marker.onmouseout = marker.onmousemove = null;
+        trackHoverOn(view, marker);
+    }
+    let { hoverTime } = view.state.facet(lintGutterConfig);
+    let hoverTimeout = setTimeout(hovered, hoverTime);
+    marker.onmouseout = ()=>{
+        clearTimeout(hoverTimeout);
+        marker.onmouseout = marker.onmousemove = null;
+    };
+    marker.onmousemove = ()=>{
+        clearTimeout(hoverTimeout);
+        hoverTimeout = setTimeout(hovered, hoverTime);
+    };
+}
+function markersForDiagnostics(doc, diagnostics) {
+    let byLine = Object.create(null);
+    for (let diagnostic of diagnostics){
+        let line = doc.lineAt(diagnostic.from);
+        (byLine[line.from] || (byLine[line.from] = [])).push(diagnostic);
+    }
+    let markers = [];
+    for(let line in byLine)markers.push(new LintGutterMarker(byLine[line]).range(+line));
+    return (0, _state.RangeSet).of(markers, true);
+}
+const lintGutterExtension = /*@__PURE__*/ (0, _view.gutter)({
+    class: "cm-gutter-lint",
+    markers: (view)=>view.state.field(lintGutterMarkers)
+});
+const lintGutterMarkers = /*@__PURE__*/ (0, _state.StateField).define({
+    create () {
+        return (0, _state.RangeSet).empty;
+    },
+    update (markers, tr) {
+        markers = markers.map(tr.changes);
+        let diagnosticFilter = tr.state.facet(lintGutterConfig).markerFilter;
+        for (let effect of tr.effects)if (effect.is(setDiagnosticsEffect)) {
+            let diagnostics = effect.value;
+            if (diagnosticFilter) diagnostics = diagnosticFilter(diagnostics || [], tr.state);
+            markers = markersForDiagnostics(tr.state.doc, diagnostics.slice(0));
+        }
+        return markers;
+    }
+});
+const setLintGutterTooltip = /*@__PURE__*/ (0, _state.StateEffect).define();
+const lintGutterTooltip = /*@__PURE__*/ (0, _state.StateField).define({
+    create () {
+        return null;
+    },
+    update (tooltip, tr) {
+        if (tooltip && tr.docChanged) tooltip = hideTooltip(tr, tooltip) ? null : Object.assign(Object.assign({}, tooltip), {
+            pos: tr.changes.mapPos(tooltip.pos)
+        });
+        return tr.effects.reduce((t, e)=>e.is(setLintGutterTooltip) ? e.value : t, tooltip);
+    },
+    provide: (field)=>(0, _view.showTooltip).from(field)
+});
+const lintGutterTheme = /*@__PURE__*/ (0, _view.EditorView).baseTheme({
+    ".cm-gutter-lint": {
+        width: "1.4em",
+        "& .cm-gutterElement": {
+            padding: ".2em"
+        }
+    },
+    ".cm-lint-marker": {
+        width: "1em",
+        height: "1em"
+    },
+    ".cm-lint-marker-info": {
+        content: /*@__PURE__*/ svg(`<path fill="#aaf" stroke="#77e" stroke-width="6" stroke-linejoin="round" d="M5 5L35 5L35 35L5 35Z"/>`)
+    },
+    ".cm-lint-marker-warning": {
+        content: /*@__PURE__*/ svg(`<path fill="#fe8" stroke="#fd7" stroke-width="6" stroke-linejoin="round" d="M20 6L37 35L3 35Z"/>`)
+    },
+    ".cm-lint-marker-error": {
+        content: /*@__PURE__*/ svg(`<circle cx="20" cy="20" r="15" fill="#f87" stroke="#f43" stroke-width="6"/>`)
+    }
+});
+const lintExtensions = [
+    lintState,
+    /*@__PURE__*/ (0, _view.EditorView).decorations.compute([
+        lintState
+    ], (state)=>{
+        let { selected, panel } = state.field(lintState);
+        return !selected || !panel || selected.from == selected.to ? (0, _view.Decoration).none : (0, _view.Decoration).set([
+            activeMark.range(selected.from, selected.to)
+        ]);
+    }),
+    /*@__PURE__*/ (0, _view.hoverTooltip)(lintTooltip, {
+        hideOn: hideTooltip
+    }),
+    baseTheme
+];
+const lintGutterConfig = /*@__PURE__*/ (0, _state.Facet).define({
+    combine (configs) {
+        return (0, _state.combineConfig)(configs, {
+            hoverTime: 300 /* Hover.Time */ ,
+            markerFilter: null,
+            tooltipFilter: null
+        });
+    }
+});
+/**
+Returns an extension that installs a gutter showing markers for
+each line that has diagnostics, which can be hovered over to see
+the diagnostics.
+*/ function lintGutter(config = {}) {
+    return [
+        lintGutterConfig.of(config),
+        lintGutterMarkers,
+        lintGutterExtension,
+        lintGutterTheme,
+        lintGutterTooltip
+    ];
+}
+/**
+Iterate over the marked diagnostics for the given editor state,
+calling `f` for each of them. Note that, if the document changed
+since the diagnostics were created, the `Diagnostic` object will
+hold the original outdated position, whereas the `to` and `from`
+arguments hold the diagnostic's current position.
+*/ function forEachDiagnostic(state, f) {
+    let lState = state.field(lintState, false);
+    if (lState && lState.diagnostics.size) for(let iter = (0, _state.RangeSet).iter([
+        lState.diagnostics
+    ]); iter.value; iter.next())f(iter.value.spec.diagnostic, iter.from, iter.to);
+}
+
+},{"@codemirror/view":"fBkgq","@codemirror/state":"80zPS","crelt":"8dw7F","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"8dw7F":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "default", ()=>crelt);
+function crelt() {
+    var elt = arguments[0];
+    if (typeof elt == "string") elt = document.createElement(elt);
+    var i = 1, next = arguments[1];
+    if (next && typeof next == "object" && next.nodeType == null && !Array.isArray(next)) {
+        for(var name in next)if (Object.prototype.hasOwnProperty.call(next, name)) {
+            var value = next[name];
+            if (typeof value == "string") elt.setAttribute(name, value);
+            else if (value != null) elt[name] = value;
+        }
+        i++;
+    }
+    for(; i < arguments.length; i++)add(elt, arguments[i]);
+    return elt;
+}
+function add(elt, child) {
+    if (typeof child == "string") elt.appendChild(document.createTextNode(child));
+    else if (child == null) ;
+    else if (child.nodeType != null) elt.appendChild(child);
+    else if (Array.isArray(child)) for(var i = 0; i < child.length; i++)add(elt, child[i]);
+    else throw new RangeError("Unsupported child node: " + child);
+}
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["3eJKs","jTl6u"], "jTl6u", "parcelRequire9fcb")
 
 //# sourceMappingURL=demo.706c1d71.js.map

@@ -1,12 +1,6 @@
-import { AmiTemplateStringEditor } from "./main.js";
-import {parser} from "./parser.js";
+import {AmiTemplateStringEditor, IAmiTemplateStringVariableDescriptor} from "./main.js";
 
-const te = new AmiTemplateStringEditor({
-  initialText: "This is carstock of {type} with feature { catstock feature}",
-  targetNode: document.getElementById("codemirror")!,
-});
-
-te.vars = [
+const dutchVars: IAmiTemplateStringVariableDescriptor[] = [
   {
     name: "merk",
     explanation: "Auto merk",
@@ -33,6 +27,50 @@ te.vars = [
   },
 ];
 
+const englishVars: IAmiTemplateStringVariableDescriptor[] = [
+  {
+    name: "brand",
+    explanation: "Car brand",
+  },
+  {
+    name: "model",
+    explanation: "Car model",
+  },
+  {
+    name: "modelyear",
+    explanation: "Carmodel year, a number",
+  },
+  {
+    name: "modelversion",
+    explanation: "Carmodel version",
+  },
+  {
+    name: "configuration",
+    explanation: "Car configuration",
+  },
+  {
+    name: "grade",
+    explanation: "Car grade",
+  },
+];
+
+const te = new AmiTemplateStringEditor({
+  initialText: "This is carstock of {type} with feature { catstock feature}",
+  targetNode: document.getElementById("codemirror")!,
+});
+
+te.vars = dutchVars;
+// @ts-ignore
+window["te"] = te;
+
+
+document.getElementById("nl")!.addEventListener("click", () => {
+  te.vars = dutchVars;
+});
+
+document.getElementById("en")!.addEventListener("click", () => {
+  te.vars = englishVars;
+});
 
 // const t = parser.parse('{who} did {what}')
 // t.cursor().iterate((node) => {
