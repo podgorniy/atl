@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { EditorView, highlightActiveLine, highlightSpecialChars, } from "@codemirror/view";
+import { EditorView, highlightSpecialChars, } from "@codemirror/view";
 import { autocompletion, closeBrackets, } from "@codemirror/autocomplete";
 import { history } from "@codemirror/commands";
 import { defaultHighlightStyle, LanguageSupport, syntaxHighlighting } from "@codemirror/language";
@@ -91,7 +91,6 @@ export class AmiTemplateStringEditor {
                 history(),
                 new LanguageSupport(AmiTemplateLanguage),
                 highlightSpecialChars(),
-                highlightActiveLine(),
                 syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 autocompletion({
                     override: [this.getAutocompleteOptions.bind(this)],
