@@ -5,9 +5,8 @@ export const AmiTemplateLanguage = LRLanguage.define({
     parser: parser.configure({
         props: [
             styleTags({
-                VariableUse: tags.bool,
-                VariableName: tags.keyword,
-                Text: tags.annotation
+                VariableUse: tags.variableName,
+                Text: tags.literal
             }),
         ],
     }),

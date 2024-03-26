@@ -1,8 +1,4 @@
-import {
-  EditorView,
-  highlightActiveLine,
-  highlightSpecialChars,
-} from "@codemirror/view";
+import { EditorView, highlightSpecialChars } from "@codemirror/view";
 import {
   autocompletion,
   closeBrackets,
@@ -10,8 +6,13 @@ import {
   CompletionResult,
 } from "@codemirror/autocomplete";
 import { history } from "@codemirror/commands";
-import {defaultHighlightStyle, LanguageSupport, syntaxHighlighting} from "@codemirror/language";
+import {
+  HighlightStyle,
+  LanguageSupport,
+  syntaxHighlighting,
+} from "@codemirror/language";
 import { AmiTemplateLanguage } from "./langauge.js";
+import { tags } from "@lezer/highlight";
 
 export interface IAmiTemplateStringEditorParams {
   /**
@@ -20,6 +21,30 @@ export interface IAmiTemplateStringEditorParams {
   targetNode: HTMLElement;
   initialText: string;
 }
+
+let AmiTheme = EditorView.baseTheme({
+  ".cm-content": {
+    fontFamily: "Roboto,Helvetica Neue,sans-serif",
+  },
+  ".ami-var-use": {
+    border: "1px solid #b6effb",
+    color: "#055160",
+    backgroundColor: "#cff4fc",
+    borderRadius: "3px",
+    margin: "-1px",
+  },
+});
+
+let AmiHighlighting = HighlightStyle.define([
+  {
+    tag: tags.variableName,
+    class: "ami-var-use",
+  },
+  {
+    tag: tags.literal,
+    class: "ami-text",
+  },
+]);
 
 /**
  * Describes the variable available for the usage in the template string
@@ -103,7 +128,6 @@ export class AmiTemplateStringEditor {
   ): Promise<CompletionResult | null> {
     const autocompleteMatch = context.matchBefore(/\{\s*\S*/);
     if (autocompleteMatch) {
-      const autocompleteStartPoint = autocompleteMatch.from;
       return {
         from: autocompleteMatch.from + 1,
         options: this.currentVars.map((varDescriptor) => {
@@ -126,7 +150,8 @@ export class AmiTemplateStringEditor {
         history(),
         new LanguageSupport(AmiTemplateLanguage),
         highlightSpecialChars(),
-        syntaxHighlighting(defaultHighlightStyle, {fallback: true}),
+        AmiTheme,
+        syntaxHighlighting(AmiHighlighting, { fallback: true }),
         autocompletion({
           override: [this.getAutocompleteOptions.bind(this)],
           activateOnTyping: true,

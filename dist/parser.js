@@ -2,15 +2,15 @@
 import { LRParser } from "@lezer/lr";
 export const parser = LRParser.deserialize({
     version: 14,
-    states: "#SOQOPOOOYOQO'#C_OOOO'#C^'#C^OOOO'#Cc'#CcQQOPOOOOOO'#Cd'#CdObOQO,58yOjOQO,58yOOOO-E6a-E6aOOOO-E6b-E6bOrOQO1G.eOrOQO1G.eOOOO1G.e1G.eOzOQO7+$POOOO7+$P7+$POOOO<<Gk<<Gk",
-    stateData: "!S~OUQOYPO~OSTOTVO~OSTOTYO~OSTOZ[O~OSTOZ^O~OSTOZ_O~O",
-    goto: "vXPPY^PPPbhTROSTQOSQSORWSQUPUXUZ]QZVR]Y",
-    nodeNames: "⚠ TemplateString Expression VariableUse Space VariableName Text",
-    maxTerm: 11,
+    states: "nOQOPOOOOOO'#C^'#C^OOOO'#Ca'#CaQQOPOOOOOO-E6_-E6_",
+    stateData: "Y~ORPOSPO~O",
+    goto: "aUPPVPPZTQORQRORSR",
+    nodeNames: "⚠ TemplateString Expression VariableUse Text",
+    maxTerm: 6,
     skippedNodes: [0],
-    repeatNodeCount: 2,
-    tokenData: "&[~RnOX#PX^#k^p#Ppq#kq!c#P!c!}%a!}#T#P#T#o%a#o#p&Q#p#q#P#q#r&V#r#y#P#y#z#k#z$f#P$f$g#k$g#BY#P#BY#BZ#k#BZ$IS#P$IS$I_#k$I_$I|#P$I|$JO#k$JO$JT#P$JT$JU#k$JU$KV#P$KV$KW#k$KW&FU#P&FU&FV#k&FV;'S#P;'S;=`#e<%lO#PP#UTUPO#o#P#p#q#P#r;'S#P;'S;=`#e<%lO#PP#hP;=`<%l#PR#riSQUPOX#PX^#k^p#Ppq#kq#o#P#p#q#P#r#y#P#y#z#k#z$f#P$f$g#k$g#BY#P#BY#BZ#k#BZ$IS#P$IS$I_#k$I_$I|#P$I|$JO#k$JO$JT#P$JT$JU#k$JU$KV#P$KV$KW#k$KW&FU#P&FU&FV#k&FV;'S#P;'S;=`#e<%lO#PR%hWUPTQO!c#P!c!}%a!}#T#P#T#o%a#p#q#P#r;'S#P;'S;=`#e<%lO#P~&VOY~~&[OZ~",
-    tokenizers: [0, 1],
+    repeatNodeCount: 1,
+    tokenData: "%R~RUO#oe#o#p!P#p#qe#r;'Se;'S;=`y<%lOe~jTS~O#oe#p#qe#r;'Se;'S;=`y<%lOe~|P;=`<%le~!S_X^!Ppq!P}!O#R!Q![#R!c!}#R#R#S#R#T#o#R#y#z!P$f$g!P#BY#BZ!P$IS$I_!P$I|$JO!P$JT$JU!P$KV$KW!P&FU&FV!P~#U`X^$Wpq$W}!O#R!Q![#R!c!}#R#R#S#R#T#o#R#q#r$|#y#z$W$f$g$W#BY#BZ$W$IS$I_$W$I|$JO$W$JT$JU$W$KV$KW$W&FU&FV$W~$ZZX^$Wpq$W#q#r$|#y#z$W$f$g$W#BY#BZ$W$IS$I_$W$I|$JO$W$JT$JU$W$KV$KW$W&FU&FV$W~%ROR~",
+    tokenizers: [0],
     topRules: { "TemplateString": [0, 1] },
     tokenPrec: 0
 });

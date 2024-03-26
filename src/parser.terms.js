@@ -3,6 +3,4 @@ export const
   TemplateString = 1,
   Expression = 2,
   VariableUse = 3,
-  Space = 4,
-  VariableName = 5,
-  Text = 6
+  Text = 4

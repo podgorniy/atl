@@ -7,11 +7,34 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { EditorView, highlightSpecialChars, } from "@codemirror/view";
+import { EditorView, highlightSpecialChars } from "@codemirror/view";
 import { autocompletion, closeBrackets, } from "@codemirror/autocomplete";
 import { history } from "@codemirror/commands";
-import { defaultHighlightStyle, LanguageSupport, syntaxHighlighting } from "@codemirror/language";
+import { HighlightStyle, LanguageSupport, syntaxHighlighting, } from "@codemirror/language";
 import { AmiTemplateLanguage } from "./langauge.js";
+import { tags } from "@lezer/highlight";
+let AmiTheme = EditorView.baseTheme({
+    ".cm-content": {
+        fontFamily: "Roboto,Helvetica Neue,sans-serif",
+    },
+    ".ami-var-use": {
+        border: "1px solid #b6effb",
+        color: "#055160",
+        backgroundColor: "#cff4fc",
+        borderRadius: "3px",
+        margin: "-1px",
+    },
+});
+let AmiHighlighting = HighlightStyle.define([
+    {
+        tag: tags.variableName,
+        class: "ami-var-use",
+    },
+    {
+        tag: tags.literal,
+        class: "ami-text",
+    },
+]);
 export class AmiTemplateStringEditor {
     get text() {
         return this.editorView.state.doc.toString();
@@ -62,7 +85,6 @@ export class AmiTemplateStringEditor {
         return __awaiter(this, void 0, void 0, function* () {
             const autocompleteMatch = context.matchBefore(/\{\s*\S*/);
             if (autocompleteMatch) {
-                const autocompleteStartPoint = autocompleteMatch.from;
                 return {
                     from: autocompleteMatch.from + 1,
                     options: this.currentVars.map((varDescriptor) => {
@@ -91,7 +113,8 @@ export class AmiTemplateStringEditor {
                 history(),
                 new LanguageSupport(AmiTemplateLanguage),
                 highlightSpecialChars(),
-                syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+                AmiTheme,
+                syntaxHighlighting(AmiHighlighting, { fallback: true }),
                 autocompletion({
                     override: [this.getAutocompleteOptions.bind(this)],
                     activateOnTyping: true,

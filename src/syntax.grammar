@@ -2,10 +2,8 @@
 
 Expression { VariableUse | Text  }
 
-VariableUse { "{" Space* VariableName Space* "}" }
-
 @tokens {
-    VariableName { @asciiLetter+ }
+    VariableUse { "{" Space* $[a-zA-Z_\-0-9]+ Space* "}" }
     Text { ![{}]+ }
     Space { @whitespace+ }
 }

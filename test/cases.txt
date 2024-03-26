@@ -12,7 +12,7 @@ pepe {kek}
 
 ==>
 
-TemplateString(Expression(Text), Expression(VariableUse(VariableName)))
+TemplateString(Expression(Text), Expression(VariableUse))
 
 # More vars
 
@@ -20,7 +20,7 @@ pepe {kek} {kok} pepe
 
 ==>
 
-TemplateString(Expression(Text), Expression(VariableUse(VariableName)), Expression(Text), Expression(VariableUse(VariableName)), Expression(Text))
+TemplateString(Expression(Text), Expression(VariableUse), Expression(Text), Expression(VariableUse), Expression(Text))
 
 # More spaces
 
@@ -28,4 +28,4 @@ pepe {   kek    }
 
 ==>
 
-TemplateString(Expression(Text), Expression(VariableUse(Space, VariableName, Space)))
+TemplateString(Expression(Text), Expression(VariableUse))

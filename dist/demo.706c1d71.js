@@ -634,6 +634,7 @@ var _autocomplete = require("@codemirror/autocomplete");
 var _commands = require("@codemirror/commands");
 var _language = require("@codemirror/language");
 var _langaugeJs = require("./langauge.js");
+var _highlight = require("@lezer/highlight");
 var __awaiter = undefined && undefined.__awaiter || function(thisArg, _arguments, P, generator) {
     function adopt(value) {
         return value instanceof P ? value : new P(function(resolve) {
@@ -661,6 +662,28 @@ var __awaiter = undefined && undefined.__awaiter || function(thisArg, _arguments
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+let AmiTheme = (0, _view.EditorView).baseTheme({
+    ".cm-content": {
+        fontFamily: "Roboto,Helvetica Neue,sans-serif"
+    },
+    ".ami-var-use": {
+        border: "1px solid #b6effb",
+        color: "#055160",
+        backgroundColor: "#cff4fc",
+        borderRadius: "3px",
+        margin: "-1px"
+    }
+});
+let AmiHighlighting = (0, _language.HighlightStyle).define([
+    {
+        tag: (0, _highlight.tags).variableName,
+        class: "ami-var-use"
+    },
+    {
+        tag: (0, _highlight.tags).literal,
+        class: "ami-text"
+    }
+]);
 class AmiTemplateStringEditor {
     get text() {
         return this.editorView.state.doc.toString();
@@ -706,18 +729,16 @@ class AmiTemplateStringEditor {
      */ getAutocompleteOptions(context) {
         return __awaiter(this, void 0, void 0, function*() {
             const autocompleteMatch = context.matchBefore(/\{\s*\S*/);
-            if (autocompleteMatch) {
-                const autocompleteStartPoint = autocompleteMatch.from;
-                return {
-                    from: autocompleteMatch.from + 1,
-                    options: this.currentVars.map((varDescriptor)=>{
-                        return {
-                            label: varDescriptor.name,
-                            info: varDescriptor.explanation
-                        };
-                    })
-                };
-            } else return null;
+            if (autocompleteMatch) return {
+                from: autocompleteMatch.from + 1,
+                options: this.currentVars.map((varDescriptor)=>{
+                    return {
+                        label: varDescriptor.name,
+                        info: varDescriptor.explanation
+                    };
+                })
+            };
+            else return null;
         });
     }
     constructor(params){
@@ -732,7 +753,8 @@ class AmiTemplateStringEditor {
                 (0, _commands.history)(),
                 new (0, _language.LanguageSupport)((0, _langaugeJs.AmiTemplateLanguage)),
                 (0, _view.highlightSpecialChars)(),
-                (0, _language.syntaxHighlighting)((0, _language.defaultHighlightStyle), {
+                AmiTheme,
+                (0, _language.syntaxHighlighting)(AmiHighlighting, {
                     fallback: true
                 }),
                 (0, _autocomplete.autocompletion)({
@@ -761,7 +783,7 @@ class AmiTemplateStringEditor {
 }
 const atl = (0, _langaugeJs.AmiTemplateLanguage);
 
-},{"@codemirror/view":"fBkgq","@codemirror/autocomplete":"daAey","@codemirror/commands":"eGPMG","@codemirror/language":"gATQT","./langauge.js":"4nZvv","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"fBkgq":[function(require,module,exports) {
+},{"@codemirror/view":"fBkgq","@codemirror/autocomplete":"daAey","@codemirror/commands":"eGPMG","@codemirror/language":"gATQT","./langauge.js":"4nZvv","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","@lezer/highlight":"jPvEX"}],"fBkgq":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "BidiSpan", ()=>BidiSpan);
@@ -23888,9 +23910,8 @@ const AmiTemplateLanguage = (0, _language.LRLanguage).define({
     parser: (0, _parserJs.parser).configure({
         props: [
             (0, _highlight.styleTags)({
-                VariableUse: (0, _highlight.tags).bool,
-                VariableName: (0, _highlight.tags).keyword,
-                Text: (0, _highlight.tags).annotation
+                VariableUse: (0, _highlight.tags).variableName,
+                Text: (0, _highlight.tags).literal
             })
         ]
     }),
@@ -23905,19 +23926,18 @@ parcelHelpers.export(exports, "parser", ()=>parser);
 var _lr = require("@lezer/lr");
 const parser = (0, _lr.LRParser).deserialize({
     version: 14,
-    states: "#SOQOPOOOYOQO'#C_OOOO'#C^'#C^OOOO'#Cc'#CcQQOPOOOOOO'#Cd'#CdObOQO,58yOjOQO,58yOOOO-E6a-E6aOOOO-E6b-E6bOrOQO1G.eOrOQO1G.eOOOO1G.e1G.eOzOQO7+$POOOO7+$P7+$POOOO<<Gk<<Gk",
-    stateData: "!S~OUQOYPO~OSTOTVO~OSTOTYO~OSTOZ[O~OSTOZ^O~OSTOZ_O~O",
-    goto: "vXPPY^PPPbhTROSTQOSQSORWSQUPUXUZ]QZVR]Y",
-    nodeNames: "\u26A0 TemplateString Expression VariableUse Space VariableName Text",
-    maxTerm: 11,
+    states: "nOQOPOOOOOO'#C^'#C^OOOO'#Ca'#CaQQOPOOOOOO-E6_-E6_",
+    stateData: "Y~ORPOSPO~O",
+    goto: "aUPPVPPZTQORQRORSR",
+    nodeNames: "\u26A0 TemplateString Expression VariableUse Text",
+    maxTerm: 6,
     skippedNodes: [
         0
     ],
-    repeatNodeCount: 2,
-    tokenData: "&[~RnOX#PX^#k^p#Ppq#kq!c#P!c!}%a!}#T#P#T#o%a#o#p&Q#p#q#P#q#r&V#r#y#P#y#z#k#z$f#P$f$g#k$g#BY#P#BY#BZ#k#BZ$IS#P$IS$I_#k$I_$I|#P$I|$JO#k$JO$JT#P$JT$JU#k$JU$KV#P$KV$KW#k$KW&FU#P&FU&FV#k&FV;'S#P;'S;=`#e<%lO#PP#UTUPO#o#P#p#q#P#r;'S#P;'S;=`#e<%lO#PP#hP;=`<%l#PR#riSQUPOX#PX^#k^p#Ppq#kq#o#P#p#q#P#r#y#P#y#z#k#z$f#P$f$g#k$g#BY#P#BY#BZ#k#BZ$IS#P$IS$I_#k$I_$I|#P$I|$JO#k$JO$JT#P$JT$JU#k$JU$KV#P$KV$KW#k$KW&FU#P&FU&FV#k&FV;'S#P;'S;=`#e<%lO#PR%hWUPTQO!c#P!c!}%a!}#T#P#T#o%a#p#q#P#r;'S#P;'S;=`#e<%lO#P~&VOY~~&[OZ~",
+    repeatNodeCount: 1,
+    tokenData: "%R~RUO#oe#o#p!P#p#qe#r;'Se;'S;=`y<%lOe~jTS~O#oe#p#qe#r;'Se;'S;=`y<%lOe~|P;=`<%le~!S_X^!Ppq!P}!O#R!Q![#R!c!}#R#R#S#R#T#o#R#y#z!P$f$g!P#BY#BZ!P$IS$I_!P$I|$JO!P$JT$JU!P$KV$KW!P&FU&FV!P~#U`X^$Wpq$W}!O#R!Q![#R!c!}#R#R#S#R#T#o#R#q#r$|#y#z$W$f$g$W#BY#BZ$W$IS$I_$W$I|$JO$W$JT$JU$W$KV$KW$W&FU&FV$W~$ZZX^$Wpq$W#q#r$|#y#z$W$f$g$W#BY#BZ$W$IS$I_$W$I|$JO$W$JT$JU$W$KV$KW$W&FU&FV$W~%ROR~",
     tokenizers: [
-        0,
-        1
+        0
     ],
     topRules: {
         "TemplateString": [
