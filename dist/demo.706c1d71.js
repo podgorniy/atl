@@ -586,7 +586,7 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 },{}],"jTl6u":[function(require,module,exports) {
 var _mainJs = require("./main.js");
 const te = new (0, _mainJs.AmiTemplateStringEditor)({
-    initialText: "Advertisement of the",
+    initialText: "This is carstock of {type} with feature { catstock feature}",
     targetNode: document.getElementById("codemirror")
 });
 te.vars = [
@@ -614,7 +614,15 @@ te.vars = [
         name: "uitvoering",
         explanation: "Auto grade"
     }
-];
+]; // const t = parser.parse('{who} did {what}')
+ // t.cursor().iterate((node) => {
+ //     console.log('node:enter', node)
+ //     console.log('node', node.node)
+ //     console.log('name', node.name)
+ //     console.log('type', node.type)
+ // }, (node) => {
+ //     console.log('node:leave', node)
+ // })
 
 },{"./main.js":"jeorp"}],"jeorp":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
@@ -724,7 +732,9 @@ class AmiTemplateStringEditor {
                 (0, _commands.history)(),
                 new (0, _language.LanguageSupport)((0, _langaugeJs.AmiTemplateLanguage)),
                 (0, _view.highlightSpecialChars)(),
-                (0, _view.highlightActiveLine)(),
+                (0, _language.syntaxHighlighting)((0, _language.defaultHighlightStyle), {
+                    fallback: true
+                }),
                 (0, _autocomplete.autocompletion)({
                     override: [
                         this.getAutocompleteOptions.bind(this)
@@ -23878,8 +23888,9 @@ const AmiTemplateLanguage = (0, _language.LRLanguage).define({
     parser: (0, _parserJs.parser).configure({
         props: [
             (0, _highlight.styleTags)({
-                VariableUse: (0, _highlight.tags).operator,
-                VariableName: (0, _highlight.tags).variableName
+                VariableUse: (0, _highlight.tags).bool,
+                VariableName: (0, _highlight.tags).keyword,
+                Text: (0, _highlight.tags).annotation
             })
         ]
     }),

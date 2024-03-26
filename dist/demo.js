@@ -1,4 +1,5 @@
 import { AmiTemplateStringEditor } from "./main.js";
+import { parser } from "./parser.js";
 const te = new AmiTemplateStringEditor({
     initialText: "Advertisement of the",
     targetNode: document.getElementById("codemirror"),
@@ -29,3 +30,12 @@ te.vars = [
         explanation: "Auto grade",
     },
 ];
+const t = parser.parse('{who} did {what}');
+t.cursor().iterate((node) => {
+    console.log('node:enter', node);
+    console.log('node', node.node);
+    console.log('name', node.name);
+    console.log('type', node.type);
+}, (node) => {
+    console.log('node:leave', node);
+});

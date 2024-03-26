@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { EditorView, highlightActiveLine, highlightSpecialChars, } from "@codemirror/view";
 import { autocompletion, closeBrackets, } from "@codemirror/autocomplete";
 import { history } from "@codemirror/commands";
-import { LanguageSupport } from "@codemirror/language";
+import { defaultHighlightStyle, LanguageSupport, syntaxHighlighting } from "@codemirror/language";
 import { AmiTemplateLanguage } from "./langauge.js";
 export class AmiTemplateStringEditor {
     get text() {
@@ -92,6 +92,7 @@ export class AmiTemplateStringEditor {
                 new LanguageSupport(AmiTemplateLanguage),
                 highlightSpecialChars(),
                 highlightActiveLine(),
+                syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 autocompletion({
                     override: [this.getAutocompleteOptions.bind(this)],
                     activateOnTyping: true,

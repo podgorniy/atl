@@ -6,6 +6,6 @@ VariableUse { "{" Space* VariableName Space* "}" }
 
 @tokens {
     VariableName { @asciiLetter+ }
-    Text { ![\{\}]+ }
+    Text { ![{}]+ }
     Space { @whitespace+ }
 }
